@@ -5,12 +5,14 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.ReactiveUI;
 using OpenUtau.App.ViewModels;
 using OpenUtau.Core;
+using OpenUtau.Core.Controllers;
 using Serilog;
 
 namespace OpenUtau.App {
@@ -19,7 +21,7 @@ namespace OpenUtau.App {
         // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
         // yet and stuff might break.
         [STAThread]
-        public static void Main(string[] args) {
+        public static async Task Main(string[] args) {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             InitLogging();
             string processName = Process.GetCurrentProcess().ProcessName;
@@ -38,8 +40,37 @@ namespace OpenUtau.App {
                 $"{RuntimeInformation.RuntimeIdentifier}");
             Log.Information($"Data path = {PathManager.Inst.DataPath}");
             Log.Information($"Cache path = {PathManager.Inst.CachePath}");
+
             try {
-                Run(args);
+                if (args.Contains("--server")) {
+                    Log.Information("Starting in HTTP server mode");
+                    int port = 5000;
+                    var portIndex = Array.IndexOf(args, "--port");
+                    if (portIndex != -1 && portIndex + 1 < args.Length) {
+                        if (int.TryParse(args[portIndex + 1], out int parsedPort)) {
+                            port = parsedPort;
+                        } else {
+                            Log.Warning($"Invalid port number: {args[portIndex + 1]}, using default port 5000");
+                        }
+                    }
+                    var server = new HttpServer(port);
+                    await server.StartAsync();
+                    Console.WriteLine($"Server is running on port {port}");
+                    Console.WriteLine("Type 'exit' and press Enter to stop the server...");
+                    
+                    while (true) {
+                        var input = Console.ReadLine();
+                        if (input?.ToLower() == "exit") {
+                            break;
+                        }
+                        Console.WriteLine("Type 'exit' and press Enter to stop the server...");
+                    }
+                    
+                    await server.StopAsync();
+                } else {
+                    Log.Information("Starting in GUI mode");
+                    Run(args);
+                }
                 Log.Information($"Exiting.");
             } finally {
                 if (!OS.IsMacOS()) {
