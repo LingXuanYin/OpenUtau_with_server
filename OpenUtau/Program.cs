@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -43,14 +44,14 @@ namespace OpenUtau.App {
 
             try {
                 if (args.Contains("--server")) {
-                    Log.Information("Starting in HTTP server mode");
+                    Console.WriteLine("Starting in HTTP server mode");
                     int port = 5000;
                     var portIndex = Array.IndexOf(args, "--port");
                     if (portIndex != -1 && portIndex + 1 < args.Length) {
                         if (int.TryParse(args[portIndex + 1], out int parsedPort)) {
                             port = parsedPort;
                         } else {
-                            Log.Warning($"Invalid port number: {args[portIndex + 1]}, using default port 5000");
+                            Console.WriteLine($"Invalid port number: {args[portIndex + 1]}, using default port 5000");
                         }
                     }
                     var server = new HttpServer(port);
@@ -64,6 +65,8 @@ namespace OpenUtau.App {
                             break;
                         }
                         Console.WriteLine("Type 'exit' and press Enter to stop the server...");
+                        Console.WriteLine($"current server \n{server.ToString()}");
+                        Thread.Sleep(1000);
                     }
                     
                     await server.StopAsync();

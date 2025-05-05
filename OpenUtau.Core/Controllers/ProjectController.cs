@@ -1,3 +1,4 @@
+﻿using System;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 
@@ -7,7 +8,7 @@ namespace OpenUtau.Core.Controllers {
     public class ProjectController : ControllerBase {
         [HttpGet]
         public IActionResult Get() {
-            Log.Information("Received GET request for project");
+            Console.WriteLine("Received GET request for project");
             return Ok(new {
                 status = "ok",
                 message = "OpenUtau HTTP API is running"

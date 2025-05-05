@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -20,7 +20,7 @@ namespace OpenUtau.Core {
             
             host = new WebHostBuilder()
                 .UseKestrel()
-                .UseUrls($"http://localhost:{port}")
+                .UseUrls($"http://127.0.0.1:{port}")
                 .ConfigureServices(services => {
                     services.AddMvc();
                 })
