@@ -183,11 +183,18 @@ namespace OpenUtau.Core {
 
         public void ExecuteCmd(UCommand cmd) {
             if (mainThread != Thread.CurrentThread) {
-                if (!(cmd is ProgressBarNotification)) {
-                    Log.Warning($"{cmd} not on main thread");
-                }
-                PostOnUIThread(() => ExecuteCmd(cmd));
-                return;
+                //Console.WriteLine(mainThread.ManagedThreadId);
+                //Console.WriteLine(mainThread.ThreadState);
+                //Console.WriteLine(mainThread.Name);
+                //Console.WriteLine("#############");
+                //Console.WriteLine(Thread.CurrentThread.ManagedThreadId);
+                //Console.WriteLine(Thread.CurrentThread.ThreadState);
+                //Console.WriteLine(Thread.CurrentThread.Name);
+                //if (!(cmd is ProgressBarNotification)) {
+                //    Log.Warning($"{cmd} not on main thread");
+                //}
+                //PostOnUIThread(() => ExecuteCmd(cmd));
+                //return;
             }
             if (cmd is UNotification) {
                 if (cmd is SaveProjectNotification saveProjectNotif) {
