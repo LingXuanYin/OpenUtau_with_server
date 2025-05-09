@@ -22,7 +22,7 @@ namespace OpenUtau.App {
         // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
         // yet and stuff might break.
         [STAThread]
-        public static async Task Main(string[] args) {
+        public static void Main(string[] args) {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             InitLogging();
             string processName = Process.GetCurrentProcess().ProcessName;
@@ -54,11 +54,27 @@ namespace OpenUtau.App {
                             Console.WriteLine($"Invalid port number: {args[portIndex + 1]}, using default port 5000");
                         }
                     }
+
+                    // 初始化必要的组件
+                    Log.Information("Initializing OpenUtau HTTP Server.");
+                    Classic.ToolsManager.Inst.Initialize();
+                    SingerManager.Inst.Initialize();
+                    DocManager.Inst.Initialize(Thread.CurrentThread, TaskScheduler.Current);
+                    DocManager.Inst.PostOnUIThread = action => action(); // 在服务器模式下直接执行
+                    InitAudio();
+
                     var server = new HttpServer(port);
-                    await server.StartAsync();
                     Console.WriteLine($"Server is running on port {port}");
                     Console.WriteLine("Type 'exit' and press Enter to stop the server...");
-                    
+
+                    // 在新线程中启动服务器
+                    //var serverThread = new Thread(() => {
+
+                        server.Start();
+                    //});
+                    //serverThread.Start();
+
+                    // 主线程等待用户输入
                     while (true) {
                         var input = Console.ReadLine();
                         if (input?.ToLower() == "exit") {
@@ -68,8 +84,10 @@ namespace OpenUtau.App {
                         Console.WriteLine($"current server \n{server.ToString()}");
                         Thread.Sleep(1000);
                     }
-                    
-                    await server.StopAsync();
+
+                    // 停止服务器
+                    server.Stop();
+                    //serverThread.Join();
                 } else {
                     Log.Information("Starting in GUI mode");
                     Run(args);
@@ -130,5 +148,24 @@ namespace OpenUtau.App {
             });
             Log.Information("Logging initialized.");
         }
+        private static void InitAudio() {
+            Log.Information("Initializing audio.");
+            if (!OS.IsWindows() || Core.Util.Preferences.Default.PreferPortAudio) {
+                try {
+                    PlaybackManager.Inst.AudioOutput = new Audio.MiniAudioOutput();
+                } catch (Exception e1) {
+                    Log.Error(e1, "Failed to init MiniAudio");
+                }
+            } else {
+                try {
+                    PlaybackManager.Inst.AudioOutput = new Audio.NAudioOutput();
+                } catch (Exception e2) {
+                    Log.Error(e2, "Failed to init NAudio");
+                }
+            }
+            Log.Information("Initialized audio.");
+        }
+
+
     }
 }
