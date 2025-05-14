@@ -182,20 +182,17 @@ namespace OpenUtau.Core {
         }
 
         public void ExecuteCmd(UCommand cmd) {
-            if (mainThread != Thread.CurrentThread) {
-                //Console.WriteLine(mainThread.ManagedThreadId);
-                //Console.WriteLine(mainThread.ThreadState);
-                //Console.WriteLine(mainThread.Name);
-                //Console.WriteLine("#############");
-                //Console.WriteLine(Thread.CurrentThread.ManagedThreadId);
-                //Console.WriteLine(Thread.CurrentThread.ThreadState);
-                //Console.WriteLine(Thread.CurrentThread.Name);
+            // 判断是否为server模式：PostOnUIThread为直接执行action的委托
+            bool isServerMode = PostOnUIThread != null && PostOnUIThread.Method.Name == "<Main>b__0_0";
+            if (!isServerMode && mainThread != Thread.CurrentThread) {
                 //if (!(cmd is ProgressBarNotification)) {
                 //    Log.Warning($"{cmd} not on main thread");
                 //}
-                //PostOnUIThread(() => ExecuteCmd(cmd));
-                //return;
+                // 仅GUI模式下才切换到主线程
+                PostOnUIThread(() => ExecuteCmd(cmd));
+                return;
             }
+
             if (cmd is UNotification) {
                 if (cmd is SaveProjectNotification saveProjectNotif) {
                     if (undoQueue.Count > 0) {
@@ -214,10 +211,21 @@ namespace OpenUtau.Core {
                     autosavedPoint = null;
                     Project = notification.project;
                     playPosTick = 0;
+
+                    // 在server模式下，确保项目完全加载后再返回
+                    if (isServerMode) {
+                        // 等待项目验证完成
+                        Project.ValidateFull();
+                    }
                 } else if (cmd is SetPlayPosTickNotification setPlayPosTickNotif) {
                     playPosTick = setPlayPosTickNotif.playPosTick;
                 } else if (cmd is SingersChangedNotification) {
                     SingerManager.Inst.SearchAllSingers();
+                    // 在server模式下等待歌手加载完成
+                    if (isServerMode) {
+                        // 等待歌手加载完成
+                        SingerManager.Inst.WaitForLoad();
+                    }
                 } else if (cmd is ValidateProjectNotification) {
                     Project.ValidateFull();
                 } else if (cmd is SingersRefreshedNotification || cmd is OtoChangedNotification) {
@@ -227,8 +235,25 @@ namespace OpenUtau.Core {
                     Project.ValidateFull();
                     if (cmd is OtoChangedNotification) {
                         ExecuteCmd(new PreRenderNotification());
+
+                        // 在server模式下等待渲染完成
+                        if (isServerMode) {
+                            // 等待预渲染完成
+                            WaitForRender();
+                        }
                     }
+                } else if (cmd is PreRenderNotification && isServerMode) {
+                    // 执行预渲染命令
+                    Publish(cmd);
+                    if (!cmd.Silent) {
+                        Log.Information($"Publish notification {cmd}");
+                    }
+
+                    // 在server模式下等待渲染完成
+                    WaitForRender();
+                    return;
                 }
+
                 Publish(cmd);
                 if (!cmd.Silent) {
                     Log.Information($"Publish notification {cmd}");
@@ -364,5 +389,25 @@ namespace OpenUtau.Core {
         }
 
         #endregion
+
+        // 辅助方法，用于在server模式下等待渲染完成
+        private void WaitForRender() {
+            try {
+                // 等待一段时间确保渲染任务已经加入队列
+                Thread.Sleep(100);
+
+                // 等待所有PhonemizerRunner中的任务完成
+                if (PhonemizerRunner != null) {
+                    PhonemizerRunner.WaitForAllTasks();
+                }
+
+                // 等待一段时间确保其他异步操作完成
+                Thread.Sleep(100);
+
+                Log.Information("Server mode: Waiting for all rendering tasks completed");
+            } catch (Exception ex) {
+                Log.Error(ex, "Error waiting for render completion");
+            }
+        }
     }
 }
