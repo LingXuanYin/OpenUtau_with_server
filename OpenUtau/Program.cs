@@ -59,6 +59,12 @@ namespace OpenUtau.App {
                     Log.Information("Initializing OpenUtau HTTP Server.");
                     Classic.ToolsManager.Inst.Initialize();
                     SingerManager.Inst.Initialize();
+
+                    Console.WriteLine("&&&&&&&&&&&&&&&");
+                    Console.WriteLine(Thread.CurrentThread.ManagedThreadId);
+                    Console.WriteLine(Thread.CurrentThread.ThreadState);
+                    Console.WriteLine(Thread.CurrentThread.Name);
+                    Console.WriteLine("&&&&&&&&&&&&&&&");
                     DocManager.Inst.Initialize(Thread.CurrentThread, TaskScheduler.Current);
                     DocManager.Inst.PostOnUIThread = action => action(); // 在服务器模式下直接执行
                     InitAudio();

@@ -124,5 +124,34 @@ namespace OpenUtau.Core {
             //Update singers used
             singersUsed = singersInUse;
         }
+
+        /// <summary>
+        /// 等待所有歌手加载完成，用于server模式下确保所有歌手数据可用
+        /// </summary>
+        public void WaitForLoad() {
+            try {
+                // 等待任何正在进行的重新加载队列
+                if (reloadCancellation != null) {
+                    int maxWaitMs = 10000; // 最多等待10秒
+                    int waitMs = 0;
+                    int sleepMs = 200;
+
+                    while (waitMs < maxWaitMs) {
+                        if (reloadQueue.IsEmpty) {
+                            // 再额外等待一段时间确保任务真正完成
+                            Thread.Sleep(500);
+                            return;
+                        }
+
+                        Thread.Sleep(sleepMs);
+                        waitMs += sleepMs;
+                    }
+
+                    Log.Warning("WaitForLoad timeout after waiting for 10 seconds");
+                }
+            } catch (Exception ex) {
+                Log.Error(ex, "Error waiting for singer load completion");
+            }
+        }
     }
 }

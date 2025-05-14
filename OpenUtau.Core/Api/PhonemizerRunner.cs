@@ -187,6 +187,39 @@ namespace OpenUtau.Api {
             }
         }
 
+        /// <summary>
+        /// Wait for all phonemizer tasks to complete.
+        /// Should only be used in server mode.
+        /// </summary>
+        public void WaitForAllTasks() {
+            WaitFinish();
+
+            // 额外等待一段时间，确保回调也完成了
+            int maxWaitMs = 5000; // 最多等待5秒
+            int waitMs = 0;
+            int sleepMs = 100;
+
+            while (waitMs < maxWaitMs) {
+                bool tasksRunning = false;
+
+                // 检查是否还有任务正在运行
+                lock (busyLock) {
+                    tasksRunning = requests.Count > 0;
+                }
+
+                if (!tasksRunning) {
+                    // 再额外等待一点时间确保回调执行完成
+                    Thread.Sleep(200);
+                    return;
+                }
+
+                Thread.Sleep(sleepMs);
+                waitMs += sleepMs;
+            }
+
+            Log.Warning("WaitForAllTasks timeout after waiting for 5 seconds");
+        }
+
         public void Dispose() {
             if (shutdown.IsCancellationRequested) {
                 return;

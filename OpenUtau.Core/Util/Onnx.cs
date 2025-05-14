@@ -20,7 +20,8 @@ namespace OpenUtau.Core {
             if (OS.IsWindows()) {
                 return new List<string> {
                 "CPU",
-                "DirectML"
+                "DirectML",
+                "GPU"
                 };
             } else if (OS.IsMacOS()) {
                 return new List<string> {
@@ -29,7 +30,8 @@ namespace OpenUtau.Core {
                 };
             }
             return new List<string> {
-                "CPU"
+                "CPU",
+                "GPU"
             };
         }
 
@@ -72,6 +74,9 @@ namespace OpenUtau.Core {
                     break;
                 case "CoreML":
                     options.AppendExecutionProvider_CoreML(CoreMLFlags.COREML_FLAG_ENABLE_ON_SUBGRAPH);
+                    break;
+                case "gpu":
+                    options.AppendExecutionProvider_CUDA();
                     break;
             }
             return options;
