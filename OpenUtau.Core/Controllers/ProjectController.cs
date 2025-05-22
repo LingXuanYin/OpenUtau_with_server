@@ -11,6 +11,7 @@ using OpenUtau.Core.Render;
 using OpenUtau.Core.SignalChain;
 using NAudio.Wave;
 using OpenUtau.Core.Format.MusicXMLSchema;
+using OpenUtau.Core.Util;
 
 namespace OpenUtau.Core.Controllers {
     [ApiController]
@@ -45,6 +46,8 @@ namespace OpenUtau.Core.Controllers {
                 // 如果已有项目，先卸载
                 if (currentProject != null) {
                     DocManager.Inst.ExecuteCmd(new LoadProjectNotification(new UProject()));
+                    // 清除缓存
+                    PathManager.Inst.ClearCache();
                 }
 
                 // 加载新项目
@@ -81,19 +84,14 @@ namespace OpenUtau.Core.Controllers {
                 DocManager.Inst.ExecuteCmd(new LoadProjectNotification(new UProject()));
                 currentProject = null;
 
+                // 清除缓存
+                PathManager.Inst.ClearCache();
+
                 return Ok(new { status = "ok", message = "项目已卸载" });
             }
             catch (Exception ex) {
                 Log.Error(ex, "卸载项目时发生错误");
                 return StatusCode(500, new { error = "卸载项目时发生错误", details = ex.Message });
-            }
-        }
-        private void CheckFileWritable(string filePath) {
-            if (!System.IO.File.Exists(filePath)) {
-                return;
-            }
-            using (FileStream fp = System.IO.File.Open(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite)) {
-                return;
             }
         }
 
