@@ -75,7 +75,7 @@ namespace OpenUtau.Core {
                 case "CoreML":
                     options.AppendExecutionProvider_CoreML(CoreMLFlags.COREML_FLAG_ENABLE_ON_SUBGRAPH);
                     break;
-                case "gpu":
+                case "GPU":
                     options.AppendExecutionProvider_CUDA();
                     break;
             }

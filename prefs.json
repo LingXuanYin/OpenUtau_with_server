@@ -19,7 +19,7 @@
   "NumRenderThreads": 8,
   "DefaultRenderer": "WORLDLINE-R",
   "WorldlineR": 0,
-  "OnnxRunner": "gpu",
+  "OnnxRunner": "GPU",
   "OnnxGpu": 1,
   "DiffSingerDepth": 1.0,
   "DiffSingerSteps": 500,
@@ -29,27 +29,14 @@
   "SkipRenderingMutedTracks": false,
   "Language": "zh-CN",
   "SortingOrder": "",
-  "RecentFiles": [
-    "E:\\test.ustx",
-    "E:\\123123.ustx"
-  ],
+  "RecentFiles": [],
   "SkipUpdate": "0.1.550",
   "AdditionalSingerPath": "C:\\Users\\35465\\Documents\\OpenUtau\\Singers",
   "InstallToAdditionalSingersPath": true,
   "LoadDeepFolderSinger": true,
   "PreferCommaSeparator": false,
   "ResamplerLogging": false,
-  "RecentSingers": [
-    "huang1_long2_yi1_dou4",
-    "gan1_yu3",
-    "ke4_qing2",
-    "lin2_ni1_te4",
-    "zhi1_geng4_niao3",
-    "shen2_li3_ling2_hua2",
-    "wen1_di2",
-    "xi1_er2",
-    "hei1_tian1_e2"
-  ],
+  "RecentSingers": [],
   "FavoriteSingers": [],
   "SingerPhonemizers": {
     "shen2_li3_ling2_hua2": "OpenUtau.Core.DiffSinger.DiffSingerChinesePhonemizer"
@@ -87,7 +74,7 @@
   "ImportTempo": 0,
   "PhoneticAssistant": "",
   "RecentOpenSingerDirectory": "C:\\Users\\35465\\Documents\\OpenUtau\\Singers",
-  "RecentOpenProjectDirectory": "E:\\",
+  "RecentOpenProjectDirectory": "",
   "LockUnselectedNotesPitch": true,
   "LockUnselectedNotesVibrato": true,
   "LockUnselectedNotesExpressions": true,
