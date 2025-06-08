@@ -259,7 +259,7 @@ namespace OpenUtau.Core.Controllers {
                         var tempoMap = midiFile.GetTempoMap();
                         var tempos = tempoMap.GetTempoChanges();
                         
-                        if (tempos.Any()) {
+                        if (false){//(tempos.Any()) {
                             // 使用第一个tempo事件
                             var firstTempo = tempos.First();
                             double bpmValue = 60000000.0 / firstTempo.Value.MicrosecondsPerQuarterNote;
@@ -272,42 +272,76 @@ namespace OpenUtau.Core.Controllers {
                                 var notes = midiFile2.GetNotes();
                                 
                                 if (notes.Any()) {
-                                    // 计算相邻音符之间的时间间隔
-                                    var intervals = new List<double>();
-                                    var sortedNotes = notes.OrderBy(n => n.Time);
-                                    var previousNote = sortedNotes.First();
+                                    var ticksPerQuarterNote = midiFile2.TimeDivision is TicksPerQuarterNoteTimeDivision timeDivision
+                                        ? timeDivision.TicksPerQuarterNote 
+                                        : 480;
+
+                                    // 1. 创建时间序列
+                                    var totalDuration = notes.Max(n => n.Time + n.Length) - notes.Min(n => n.Time);
+                                    var timeSeries = new double[(int)(totalDuration / 10) + 1]; // 每10个tick采样一次
                                     
-                                    foreach (var note in sortedNotes.Skip(1)) {
-                                        var interval = note.Time - previousNote.Time;
-                                        if (interval > 0) {
-                                            intervals.Add(interval);
+                                    foreach (var note in notes) {
+                                        var startIndex = (int)(note.Time / 10);
+                                        var endIndex = (int)((note.Time + note.Length) / 10);
+                                        for (int i = startIndex; i <= endIndex && i < timeSeries.Length; i++) {
+                                            timeSeries[i] = 1.0; // 音符存在的位置设为1
                                         }
-                                        previousNote = note;
                                     }
-                                    
-                                    if (intervals.Any()) {
-                                        // 使用最常见的间隔来推测BPM
-                                        var mostCommonInterval = intervals
-                                            .GroupBy(i => Math.Round(i / 10.0) * 10) // 将间隔分组，允许10个tick的误差
+
+                                    // 2. 计算自相关
+                                    var maxLag = timeSeries.Length / 2;
+                                    var autocorr = new double[maxLag];
+                                    for (int lag = 0; lag < maxLag; lag++) {
+                                        double sum = 0;
+                                        for (int i = 0; i < timeSeries.Length - lag; i++) {
+                                            sum += timeSeries[i] * timeSeries[i + lag];
+                                        }
+                                        autocorr[lag] = sum;
+                                    }
+
+                                    // 3. 找到自相关的峰值
+                                    var peaks = new List<int>();
+                                    for (int i = 2; i < autocorr.Length - 2; i++) {
+                                        if (autocorr[i] > autocorr[i - 1] && 
+                                            autocorr[i] > autocorr[i - 2] && 
+                                            autocorr[i] > autocorr[i + 1] && 
+                                            autocorr[i] > autocorr[i + 2]) {
+                                            peaks.Add(i);
+                                        }
+                                    }
+
+                                    // 4. 分析峰值间隔
+                                    var peakIntervals = new List<int>();
+                                    for (int i = 1; i < peaks.Count; i++) {
+                                        peakIntervals.Add(peaks[i] - peaks[i - 1]);
+                                    }
+
+                                    // 5. 计算BPM
+                                    double bpmValue;
+                                    if (peakIntervals.Any()) {
+                                        // 使用最常见的峰值间隔
+                                        var mostCommonInterval = peakIntervals
+                                            .GroupBy(i => i)
                                             .OrderByDescending(g => g.Count())
                                             .First()
                                             .Key;
+
+                                        // 将间隔转换为BPM
+                                        bpmValue = 60000000.0 / (mostCommonInterval * 10 * 1000000.0 / ticksPerQuarterNote);
                                         
-                                        // 将tick转换为BPM
-                                        double ticksPerQuarterNote = midiFile2.TimeDivision is TicksPerQuarterNoteTimeDivision timeDivision
-                                            ? timeDivision.TicksPerQuarterNote 
-                                            : 480;
-                                        double bpmValue = 60000000.0 / (mostCommonInterval * 1000000.0 / ticksPerQuarterNote);
-                                        
-                                        // 确保BPM在合理范围内
-                                        bpmValue = Math.Max(30, Math.Min(300, bpmValue));
-                                        
-                                        project.tempos.Add(new UTempo(0, bpmValue));
-                                        Log.Information($"通过音符间隔推测BPM: {bpmValue}");
+                                        // 将BPM转换到合理范围内
+                                        while (bpmValue < 30) bpmValue *= 2;
+                                        while (bpmValue > 300) bpmValue /= 2;
                                     } else {
-                                        project.tempos.Add(new UTempo(0, 120.0));
-                                        Log.Warning("无法通过音符间隔推测BPM，使用默认值120.0");
+                                        // 如果没有找到足够的峰值，使用基于总时长的估计
+                                        var totalBeats = totalDuration / (ticksPerQuarterNote * 4); // 假设4/4拍
+                                        bpmValue = totalBeats * 60.0 / (totalDuration * 1000000.0 / ticksPerQuarterNote);
+                                        while (bpmValue < 30) bpmValue *= 2;
+                                        while (bpmValue > 300) bpmValue /= 2;
                                     }
+
+                                    project.tempos.Add(new UTempo(0, bpmValue));
+                                    Log.Information($"通过自相关分析推测BPM: {bpmValue}");
                                 } else {
                                     project.tempos.Add(new UTempo(0, 120.0));
                                     Log.Warning("MIDI文件中没有音符，使用默认值120.0");
