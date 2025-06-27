@@ -77,6 +77,7 @@ namespace OpenUtau.Core {
                     break;
                 case "GPU":
                     options.AppendExecutionProvider_CUDA();
+                    options.AppendExecutionProvider_CPU();
                     break;
             }
             return options;
